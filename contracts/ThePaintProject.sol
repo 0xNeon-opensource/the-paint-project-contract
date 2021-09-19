@@ -10,7 +10,8 @@ contract ThePaintProject is ERC721URIStorage {
     string[] public colors;
 
     mapping(string => bool) _colorExists;
-    mapping(string => uint) colorToTokenId;
+    mapping(uint => string) tokenIdToColor;
+    mapping(uint => address) tokenIdToOwner;
 
     event CreatedColor(uint256 indexed tokenId, string tokenUri);
 
@@ -51,7 +52,8 @@ contract ThePaintProject is ERC721URIStorage {
         _safeMint(msg.sender, _id);
         colors.push(_color);
         _colorExists[_color] = true; // maybe remove and use tokenIdToColor?
-        colorToTokenId[_color] = _id;
+        tokenIdToColor[_id] = _color;
+        tokenIdToOwner[_id] = msg.sender;
         string memory tokenUri = getTokenUriForColor(_color);
         _setTokenURI(_id, tokenUri);
         emit CreatedColor(_id, tokenUri);
@@ -61,15 +63,31 @@ contract ThePaintProject is ERC721URIStorage {
         return colors.length;
     }
 
-    function getTokenIdForColor(string memory _color) public view returns (uint) {
-        uint tokenId = colorToTokenId[_color];
-        return tokenId;
-    }
+    function getColorsOfOwner(address _owner) external view returns (string[] memory) {
+        uint256 tokenCount = balanceOf(_owner);
+        
+        if (tokenCount == 0) {
+            // Return an empty array
+            return new string[](0);
+        } else {
+            string[] memory result = new string[](tokenCount);
+            uint256 totalColors = totalSupply();
+            uint256 resultIndex = 0;
 
-    function getMetadataForColor(string memory _color) public view returns (string memory) {
-        uint tokenId = colorToTokenId[_color];
-        string memory metadata = tokenURI(tokenId);
-        return metadata;
+            // We count on the fact that all colors have IDs starting at 0 and increasing
+            // sequentially up to but not including the totalColor count.
+            uint256 tokenId;
+
+            for (tokenId = 0; tokenId < totalColors; tokenId++) {
+                if (tokenIdToOwner[tokenId] == _owner) {
+                    result[resultIndex] = tokenIdToColor[tokenId];
+                    resultIndex++;
+                }
+            }
+
+            return result;
+        }
+
     }
 
     function getTokenUriForColor(string memory _color) public pure returns (string memory) {
@@ -95,7 +113,7 @@ contract ThePaintProject is ERC721URIStorage {
             '{',
                 '"name": "', _color, 
                 '", "description": "Proof of ownership of the original color ',
-                _color, ' minted on the Ethereum blockchain.',
+                _color, ' on the Ethereum blockchain.',
                 '", "image": "', _imageUri, '"',
             '}'
         ));

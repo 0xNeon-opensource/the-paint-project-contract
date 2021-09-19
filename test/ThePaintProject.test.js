@@ -95,10 +95,11 @@ contract('ThePaintProject', (accounts) => {
     });
 
     describe('metadata', async () => {
+        // These tests are very brittle
         // #150050 is the second color minted
         const mintedColor = '#150050';
         const expectedImageUriForMintedColor = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyMxNTAwNTAnIC8+PC9zdmc+';
-        const expectedTokenUri = 'data:application/json;base64,eyJuYW1lIjogIiMxNTAwNTAiLCAiZGVzY3JpcHRpb24iOiAiUHJvb2Ygb2Ygb3duZXJzaGlwIG9mIHRoZSBvcmlnaW5hbCBjb2xvciAjMTUwMDUwIG1pbnRlZCBvbiB0aGUgRXRoZXJldW0gYmxvY2tjaGFpbi4iLCAiaW1hZ2UiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBuTVRBd0pTY2dhR1ZwWjJoMFBTY3hNREFsSnlCNGJXeHVjejBuYUhSMGNEb3ZMM2QzZHk1M015NXZjbWN2TWpBd01DOXpkbWNuUGp4eVpXTjBJSGRwWkhSb1BTY3hNREFsSnlCb1pXbG5hSFE5SnpFd01DVW5JR1pwYkd3OUp5TXhOVEF3TlRBbklDOCtQQzl6ZG1jKyJ9';
+        const expectedTokenUri = 'data:application/json;base64,eyJuYW1lIjogIiMxNTAwNTAiLCAiZGVzY3JpcHRpb24iOiAiUHJvb2Ygb2Ygb3duZXJzaGlwIG9mIHRoZSBvcmlnaW5hbCBjb2xvciAjMTUwMDUwIG9uIHRoZSBFdGhlcmV1bSBibG9ja2NoYWluLiIsICJpbWFnZSI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUIzYVdSMGFEMG5NVEF3SlNjZ2FHVnBaMmgwUFNjeE1EQWxKeUI0Yld4dWN6MG5hSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY25Qanh5WldOMElIZHBaSFJvUFNjeE1EQWxKeUJvWldsbmFIUTlKekV3TUNVbklHWnBiR3c5SnlNeE5UQXdOVEFuSUM4K1BDOXpkbWMrIn0=';
         it('should convert a hex color into an svg image URI', async () => {
             const uri = await contract.colorToImageUri(mintedColor);
             assert.equal(uri, expectedImageUriForMintedColor);
@@ -110,15 +111,20 @@ contract('ThePaintProject', (accounts) => {
         });
 
         it('should get metadata from color', async () => {
-            const metadata = await contract.getMetadataForColor(mintedColor);
+            const metadata = await contract.getTokenUriForColor(mintedColor);
             assert.equal(metadata, expectedTokenUri);
         });
+    });
 
-        it('should get tokenId for color', async () => {
-            // #150050 is the second color minted
-            const expectedTokenId = 1;
-            const tokenId = await contract.getTokenIdForColor(mintedColor);
-            assert.equal(tokenId, expectedTokenId);
+    describe('tokenToOwner', async() => {
+        it('should get tokens for a given owner', async() => {
+            const account2Colors = await contract.getColorsOfOwner(accounts[1]);
+            expect(account2Colors).to.be.empty;
+
+            // All previously minted colors
+            let expectedColors = ['#FFFFFF', '#150050', '#000000', '#4A0E4E'];
+            const account1Colors = await contract.getColorsOfOwner(accounts[0]);
+            assert.deepEqual(account1Colors, expectedColors);
         });
     });
 })
