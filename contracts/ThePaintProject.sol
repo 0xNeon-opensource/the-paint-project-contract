@@ -4,16 +4,23 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "base64-sol/base64.sol";
+import "./ColorConverter.sol";
 
 contract ThePaintProject is ERC721URIStorage {
 
     string[] public colors;
+    uint16 maxSupply = 1024;
 
     mapping(string => bool) _colorExists;
     mapping(uint => string) tokenIdToColor;
     mapping(uint => address) tokenIdToOwner;
 
     event CreatedColor(uint256 indexed tokenId, string tokenUri);
+
+    modifier doesNotExceedMaxSupply() {
+        require(colors.length + 1 <= 1024);
+        _;
+    }
 
     modifier onlyHexColor(bytes memory _color) {
         require(_color.length == 7, "Length not correct");
@@ -46,7 +53,7 @@ contract ThePaintProject is ERC721URIStorage {
     }
 
     // Make this bytes32 or smaller??
-    function mint(string  memory _color) external onlyHexColor(bytes(_color)) {
+    function mint(string  memory _color) external doesNotExceedMaxSupply() onlyHexColor(bytes(_color)) {
         require(!_colorExists[_color], 'Color exists');
         uint _id = colors.length;
         _safeMint(msg.sender, _id);
@@ -120,5 +127,27 @@ contract ThePaintProject is ERC721URIStorage {
         string memory encodedJson = Base64.encode(bytes(json));
         string memory tokenUri = string(abi.encodePacked(baseUri, encodedJson));
         return tokenUri;
+    }
+
+    function convertHexColorToRGB(string memory _hexColor) public pure returns (uint16[] memory) {
+        uint decimal = ColorConverter.hexToUint(removeHashFromHexValue(_hexColor));
+        uint16[] memory rgb = new uint16[](3);
+        rgb[0] = ColorConverter.uintToRGBRed(decimal);
+        rgb[1] = ColorConverter.uintToRGBGreen(decimal);
+        rgb[2] = ColorConverter.uintToRGBBlue(decimal);
+        return rgb;
+    }
+
+    function convertRgbToHsl(uint16[] memory rgb) public pure returns (uint16[] memory) {
+        require(rgb.length == 3);
+        // want 5 decimal place accuracy, so multiplying by 100000
+        
+    }
+
+    function removeHashFromHexValue(string memory _hex) public pure returns (string memory) {
+        bytes memory _bytesHex = bytes(_hex);
+        require(_bytesHex.length == 7, "Length not correct");
+        require(_bytesHex[0] == "#", "Color code does not begin with '#'");
+        return string(abi.encodePacked(_bytesHex[1], _bytesHex[2], _bytesHex[3], _bytesHex[4], _bytesHex[5], _bytesHex[6]));
     }
 }
