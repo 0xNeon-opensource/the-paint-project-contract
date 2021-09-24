@@ -138,10 +138,72 @@ contract ThePaintProject is ERC721URIStorage {
         return rgb;
     }
 
-    function convertRgbToHsl(uint16[] memory rgb) public pure returns (uint16[] memory) {
+    function convertRgbToHsl(int16[] memory rgb) public pure returns (int) {
         require(rgb.length == 3);
-        // want 5 decimal place accuracy, so multiplying by 100000
-        
+        uint256[] memory hsl = new uint256[](3);
+
+        // Make r, g, and b fractions of 1
+        int rFraction = divide(int(rgb[0]), 255);
+        int gFraction = divide(int(rgb[1]), 255);
+        int bFraction = divide(int(rgb[2]), 255);
+
+        // Find greatest and smallest channel values
+        int[3] memory fractionArray = [rFraction, gFraction, bFraction];
+        int channelMin = getMinValueOfArray(fractionArray);
+        int channelMax = getMaxValueOfArray(fractionArray);
+        int delta = channelMax - channelMin;
+
+        int h;
+        // // Calculate hue
+        // // No difference
+        if (delta == 0) {
+            h = 0;
+        // Red is max
+        } else if (channelMax == rFraction) {
+            h = divide((int(gFraction) - int(bFraction)), delta) % 6; // THIS MOD DOES NOT WORK! Figure out how to make it work with R being largest value.
+        // Green is max
+        } else if (channelMax == gFraction) {
+            // don't forget. if there's a number in this crazy solidity math with 4 digits, that means there's a .0 in front of it.
+            h = divide(int(bFraction) - int(rFraction), delta) + 200000 ; // + 2
+        // Blue is max
+        } else {
+            h = divide((rFraction - gFraction), delta) + 400000;
+        }
+
+        h *= 60;
+
+        return h;
+    }
+
+    // int allows for negative number division
+    function divide(int numerator, int denominator) public pure returns(int quotient) {
+        // Multiply by 1000000 for 5 decimals of precision
+        int _numerator  = numerator * 1000000;
+        // with rounding of last digit
+        int _quotient =  ((_numerator / denominator) + 5) / 10;
+        return ( _quotient);
+    }
+
+    function getMinValueOfArray(int[3] memory array) public pure returns (int) {
+        int smallestValue = array[0];
+
+        for (uint i = 0; i < array.length - 1; i++) {
+            if (smallestValue > array[i + 1]) {
+                smallestValue = array[i + 1];
+            } 
+        }
+        return smallestValue;
+    }
+
+    function getMaxValueOfArray(int[3] memory array) public pure returns (int) {
+        int largestValue = array[0];
+
+        for (uint i = 0; i < array.length - 1; i++) {
+            if (largestValue < array[i + 1]) {
+                largestValue = array[i + 1];
+            } 
+        }
+        return largestValue;
     }
 
     function removeHashFromHexValue(string memory _hex) public pure returns (string memory) {

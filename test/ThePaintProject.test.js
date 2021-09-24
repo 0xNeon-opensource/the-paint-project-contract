@@ -151,7 +151,103 @@ contract('ThePaintProject', (accounts) => {
                 assert.equal(result[1].toNumber(), expectedG);
                 assert.equal(result[2].toNumber(), expectedB);
             });
+        });
 
+        it('should convert RGB to HSL', async() => {
+            const rgb = [255, 80, 200];
+
+            await contract.convertRgbToHsl(rgb).then((result) => {
+                // assert.equal(result.toNumber(), 1);
+                // assert.equal(result[1].toNumber(), 2);
+                // assert.equal(result[2].toNumber(), 3);
+            });
+
+        });
+    });
+
+    describe('helper math functions', async() => {
+        it('should find the min value in an array of three numbers', async() => {
+            const arrayMinOne = [1, 2, 3];
+
+            await contract.getMinValueOfArray(arrayMinOne).then((result) => {
+                assert.equal(result.toNumber(), 1);
+            });
+
+            const arrayMinTwo = [5, 2, 4];
+
+            await contract.getMinValueOfArray(arrayMinTwo).then((result) => {
+                assert.equal(result.toNumber(), 2);
+            });
+
+            const arrayMinZero = [5, 2, 0];
+
+            await contract.getMinValueOfArray(arrayMinZero).then((result) => {
+                assert.equal(result.toNumber(), 0);
+            });
+
+            const arrayMinThree = [3, 5, 4];
+
+            await contract.getMinValueOfArray(arrayMinThree).then((result) => {
+                assert.equal(result.toNumber(), 3);
+            });
+        });
+
+        it('should find the max value in an array of three numbers', async() => {
+            const arrayMaxThree = [1, 3, 2];
+
+            await contract.getMaxValueOfArray(arrayMaxThree).then((result) => {
+                assert.equal(result.toNumber(), 3);
+            });
+
+            const arrayMaxFive = [5, 2, 4];
+
+            await contract.getMaxValueOfArray(arrayMaxFive).then((result) => {
+                assert.equal(result.toNumber(), 5);
+            });
+
+            const arrayMaxTen = [5, 2, 10];
+
+            await contract.getMaxValueOfArray(arrayMaxTen).then((result) => {
+                assert.equal(result.toNumber(), 10);
+            });
+        });
+
+        it('should divide two numbers the hacky solidity way (keeping the number of digits, in this case 5)', async() => {
+            const num1 = 3;
+            const den1 = 2;
+
+            await contract.divide(num1, den1).then((result) => {
+                // Move the decimal place over 5 (our precision number of digits) to get 1.5
+                assert.equal(result.toNumber(), 150000);
+            });
+
+            const num2 = 50;
+            const den2 = 255;
+
+            await contract.divide(num2, den2).then((result) => {
+                assert.equal(result.toNumber(), 19608);
+            });
+
+            const num3 = 80;
+            const den3 = 255;
+
+            await contract.divide(num3, den3).then((result) => {
+                assert.equal(result.toNumber(), 31373);
+            });
+
+            const num4 = 46;
+            const den4 = 255;
+
+            await contract.divide(num4, den4).then((result) => {
+                assert.equal(result.toNumber(), 18039);
+            });
+
+            const num5 = 255;
+            const den5 = 255;
+
+            await contract.divide(num5, den5).then((result) => {
+                assert.equal(result.toNumber(), 100000);
+            });
         });
     });
 })
