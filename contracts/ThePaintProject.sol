@@ -119,12 +119,28 @@ contract ThePaintProject is ERC721URIStorage {
 
     function formatTokenUri(string memory _color, string memory _imageUri) public pure returns (string memory) {
         string memory baseUri = "data:application/json;base64,";
+        uint16[] memory rgb = ColorConverter.convertHexColorToRGB(_color);
+        uint[] memory hsl = ColorConverter.convertRgbToHsl(rgb);
         string memory json = string(abi.encodePacked(
             '{',
                 '"name": "', _color, 
                 '", "description": "Proof of ownership of the original color ',
                 _color, ' on the Ethereum blockchain.',
                 '", "image": "', _imageUri, '"',
+                ', "attributes": [',
+                    '{"trait_type": "Red Intensity", ',
+                    '"value": "', uintToString(uint(rgb[0])), '"}, ',
+                    '{"trait_type": "Green Intensity", ',
+                    '"value": "', uintToString(uint(rgb[1])), '"}, ',
+                    '{"trait_type": "Blue Intensity", ',
+                    '"value": "', uintToString(uint(rgb[2])), '"}, ',
+                    '{"trait_type": "Hue", ',
+                    '"value": "', uintToString(uint(hsl[0])), unicode"°", '"}, ',
+                    '{"trait_type": "Saturation", ',
+                    '"value": "', uintToString(uint(hsl[1])), '%"}, ',
+                    '{"trait_type": "Lightness", ',
+                    '"value": "', uintToString(uint(hsl[2])), '%"}',
+                ']',
             '}'
         ));
         string memory encodedJson = Base64.encode(bytes(json));
@@ -132,152 +148,26 @@ contract ThePaintProject is ERC721URIStorage {
         return tokenUri;
     }
 
-    function convertHexColorToRGB(string memory _hexColor) public pure returns (uint16[] memory) {
-        uint decimal = ColorConverter.hexToUint(removeHashFromHexValue(_hexColor));
-        uint16[] memory rgb = new uint16[](3);
-        rgb[0] = ColorConverter.uintToRGBRed(decimal);
-        rgb[1] = ColorConverter.uintToRGBGreen(decimal);
-        rgb[2] = ColorConverter.uintToRGBBlue(decimal);
-        return rgb;
-    }
-
-    function convertRgbToHsl(int16[] memory rgb) public pure returns (int[] memory) {
-        require(rgb.length == 3);
-        int[] memory hsl = new int[](3);
-
-        // Make r, g, and b fractions of 1
-        int rFraction = divide(int(rgb[0]), 255);
-        int gFraction = divide(int(rgb[1]), 255);
-        int bFraction = divide(int(rgb[2]), 255);
-
-        // Find greatest and smallest channel values
-        int[3] memory fractionArray = [rFraction, gFraction, bFraction];
-        int channelMin = getMinValueOfArray(fractionArray);
-        int channelMax = getMaxValueOfArray(fractionArray);
-        int delta = channelMax - channelMin;
-
-        // Calculate hue
-        
-        hsl[0] = formatHue(uint(calculateHue(rFraction, gFraction, bFraction, channelMax, delta)));
-
-        // Calculate lightness
-
-        int lightness = calculateLightness(channelMax, channelMin);
-        hsl[2] = formatPercentage(uint(lightness));
-
-        // Calculate saturation
-
-        hsl[1] = formatPercentage(uint(calculateSaturation(delta, lightness)));
-
-        return hsl;
-    }
-
-    function calculateHue(
-        int rFraction,
-        int gFraction,
-        int bFraction,
-        int channelMax,
-        int delta
-        ) internal pure returns (int) {
-        int h;
-
-        if (delta == 0) {
-            h = 0;
-        // Red is max
-        } else if (channelMax == rFraction) {
-            h = divide((int(gFraction) - int(bFraction)), delta) % 600000; // % 6
-        // Green is max
-        } else if (channelMax == gFraction) {
-            h = divide(int(bFraction) - int(rFraction), delta) + 200000 ; // + 2
-        // Blue is max
-        } else {
-            h = divide((rFraction - gFraction), delta) + 400000; // + 4
+    function uintToString(uint256 _i)internal pure returns (string memory str) {
+        if (_i == 0)
+        {
+            return "0";
         }
-
-        h *= 60;
-
-        // Make negative hues positive behind 360°
-        if (h < 0) {
-            h += 36000000;
+        uint256 j = _i;
+        uint256 length;
+        while (j != 0)
+        {
+            length++;
+            j /= 10;
         }
-
-        return h;
-    }
-
-    function calculateLightness(int channelMax, int channelMin) internal pure returns (int) {
-        return divide((channelMax + channelMin), 200000);
-    }
-
-    function calculateSaturation(int delta, int lightness) internal pure returns (int) {
-        int saturationDenomenator = 2 * lightness - 100000;
-        // Get absolute value of saturationDenomenator
-        if (saturationDenomenator < 0) {
-            saturationDenomenator -= saturationDenomenator * 2;
+        bytes memory bstr = new bytes(length);
+        uint256 k = length;
+        j = _i;
+        while (j != 0)
+        {
+            bstr[--k] = bytes1(uint8(48 + j % 10));
+            j /= 10;
         }
-        
-        return delta == 0 ? int(0) : divide(delta, 100000 - saturationDenomenator);
-    }
-
-    function formatPercentage(uint rawNum) internal pure returns (int) {
-        // Math has been done with 5 digits of precision, meaning the number "1" is represented
-        // as 100000. 45%, or 0.45 is represented as 45000
-        uint roundedDown = SafeMath.div(rawNum, 1000);
-        // return int(roundedDown);
-        uint decimals = SafeMath.sub(rawNum, roundedDown * 1000);
-        if (decimals >= 445) {
-            roundedDown += 1;
-        }
-
-        return int(roundedDown);
-    }
-
-    function formatHue(uint rawNum) internal pure returns (int) {
-        // Math has been done with 5 digits of precision, meaning the number "1" is represented
-        // as 100000. 45%, or 0.45 is represented as 45000
-        uint roundedDown = SafeMath.div(rawNum, 100000);
-        uint decimals = SafeMath.sub(rawNum, roundedDown * 100000);
-        if (decimals >= 44500) {
-            roundedDown += 1;
-        }
-
-        return int(roundedDown);
-    }
-
-    // int allows for negative number division
-    function divide(int numerator, int denominator) public pure returns(int quotient) {
-        // Multiply by 1000000 for 5 decimals of precision
-        int _numerator  = numerator * 1000000;
-        // with rounding of last digit
-        int _quotient =  ((_numerator / denominator) + 5) / 10;
-        return ( _quotient);
-    }
-
-    function getMinValueOfArray(int[3] memory array) public pure returns (int) {
-        int smallestValue = array[0];
-
-        for (uint i = 0; i < array.length - 1; i++) {
-            if (smallestValue > array[i + 1]) {
-                smallestValue = array[i + 1];
-            } 
-        }
-        return smallestValue;
-    }
-
-    function getMaxValueOfArray(int[3] memory array) public pure returns (int) {
-        int largestValue = array[0];
-
-        for (uint i = 0; i < array.length - 1; i++) {
-            if (largestValue < array[i + 1]) {
-                largestValue = array[i + 1];
-            } 
-        }
-        return largestValue;
-    }
-
-    function removeHashFromHexValue(string memory _hex) public pure returns (string memory) {
-        bytes memory _bytesHex = bytes(_hex);
-        require(_bytesHex.length == 7, "Length not correct");
-        require(_bytesHex[0] == "#", "Color code does not begin with '#'");
-        return string(abi.encodePacked(_bytesHex[1], _bytesHex[2], _bytesHex[3], _bytesHex[4], _bytesHex[5], _bytesHex[6]));
+        return string(bstr);
     }
 }

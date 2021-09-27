@@ -2,10 +2,15 @@
 
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 /// @title ColorConverter
 /// @author @codingwithmanny & @mannynarang
 /// @notice Provides multiple functions for converting colors to different formats
 library ColorConverter {
+
+    using SafeMath for uint;
+    
     // Constants
     bytes1 constant a = bytes1('a');
     bytes1 constant f = bytes1('f');
@@ -131,5 +136,154 @@ library ColorConverter {
      */
     function uintToRGBBlue (uint256 decimalValue) pure public returns (uint16) {
         return uint16(decimalValue % 256);
+    }
+
+        function convertHexColorToRGB(string memory _hexColor) public pure returns (uint16[] memory) {
+        uint decimal = hexToUint(removeHashFromHexValue(_hexColor));
+        uint16[] memory rgb = new uint16[](3);
+        rgb[0] = uintToRGBRed(decimal);
+        rgb[1] = uintToRGBGreen(decimal);
+        rgb[2] = uintToRGBBlue(decimal);
+        return rgb;
+    }
+
+    function convertRgbToHsl(uint16[] memory rgb) public pure returns (uint[] memory) {
+        require(rgb.length == 3);
+        uint[] memory hsl = new uint[](3);
+
+        // Make r, g, and b fractions of 1
+        int rFraction = divide(int(uint(rgb[0])), 255);
+        int gFraction = divide(int(uint(rgb[1])), 255);
+        int bFraction = divide(int(uint(rgb[2])), 255);
+
+        // Find greatest and smallest channel values
+        int[3] memory fractionArray = [rFraction, gFraction, bFraction];
+        int channelMin = getMinValueOfArray(fractionArray);
+        int channelMax = getMaxValueOfArray(fractionArray);
+        int delta = channelMax - channelMin;
+
+        // Calculate hue
+        
+        hsl[0] = formatHue(uint(calculateHue(rFraction, gFraction, bFraction, channelMax, delta)));
+
+        // Calculate lightness
+
+        int lightness = calculateLightness(channelMax, channelMin);
+        hsl[2] = formatPercentage(uint(lightness));
+
+        // Calculate saturation
+
+        hsl[1] = formatPercentage(uint(calculateSaturation(delta, lightness)));
+
+        return hsl;
+    }
+
+    function calculateHue(
+        int rFraction,
+        int gFraction,
+        int bFraction,
+        int channelMax,
+        int delta
+        ) internal pure returns (int) {
+        int h;
+
+        if (delta == 0) {
+            h = 0;
+        // Red is max
+        } else if (channelMax == rFraction) {
+            h = divide((int(gFraction) - int(bFraction)), delta) % 600000; // % 6
+        // Green is max
+        } else if (channelMax == gFraction) {
+            h = divide(int(bFraction) - int(rFraction), delta) + 200000 ; // + 2
+        // Blue is max
+        } else {
+            h = divide((rFraction - gFraction), delta) + 400000; // + 4
+        }
+
+        h *= 60;
+
+        // Make negative hues positive behind 360°
+        if (h < 0) {
+            h += 36000000;
+        }
+
+        return h;
+    }
+
+    function calculateLightness(int channelMax, int channelMin) internal pure returns (int) {
+        return divide((channelMax + channelMin), 200000);
+    }
+
+    function calculateSaturation(int delta, int lightness) internal pure returns (int) {
+        int saturationDenomenator = 2 * lightness - 100000;
+        // Get absolute value of saturationDenomenator
+        if (saturationDenomenator < 0) {
+            saturationDenomenator -= saturationDenomenator * 2;
+        }
+        
+        return delta == 0 ? int(0) : divide(delta, 100000 - saturationDenomenator);
+    }
+
+    function formatPercentage(uint rawNum) internal pure returns (uint) {
+        // Math has been done with 5 digits of precision, meaning the number "1" is represented
+        // as 100000. 45%, or 0.45 is represented as 45000
+        uint roundedDown = SafeMath.div(rawNum, 1000);
+        // return int(roundedDown);
+        uint decimals = SafeMath.sub(rawNum, roundedDown * 1000);
+        if (decimals >= 445) {
+            roundedDown += 1;
+        }
+
+        return roundedDown;
+    }
+
+    function formatHue(uint rawNum) internal pure returns (uint) {
+        // Math has been done with 5 digits of precision, meaning the number "1" is represented
+        // as 100000. 45%, or 0.45 is represented as 45000
+        uint roundedDown = SafeMath.div(rawNum, 100000);
+        uint decimals = SafeMath.sub(rawNum, roundedDown * 100000);
+        if (decimals >= 44500) {
+            roundedDown += 1;
+        }
+
+        return roundedDown;
+    }
+
+    // int allows for negative number division
+    function divide(int numerator, int denominator) public pure returns(int quotient) {
+        // Multiply by 1000000 for 5 decimals of precision
+        int _numerator  = numerator * 1000000;
+        // with rounding of last digit
+        int _quotient =  ((_numerator / denominator) + 5) / 10;
+        return ( _quotient);
+    }
+
+    function getMinValueOfArray(int[3] memory array) public pure returns (int) {
+        int smallestValue = array[0];
+
+        for (uint i = 0; i < array.length - 1; i++) {
+            if (smallestValue > array[i + 1]) {
+                smallestValue = array[i + 1];
+            } 
+        }
+        return smallestValue;
+    }
+
+    function getMaxValueOfArray(int[3] memory array) public pure returns (int) {
+        int largestValue = array[0];
+
+        for (uint i = 0; i < array.length - 1; i++) {
+            if (largestValue < array[i + 1]) {
+                largestValue = array[i + 1];
+            } 
+        }
+        return largestValue;
+    }
+
+    function removeHashFromHexValue(string memory _hex) public pure returns (string memory) {
+        bytes memory _bytesHex = bytes(_hex);
+        require(_bytesHex.length == 7, "Length not correct");
+        require(_bytesHex[0] == "#", "Color code does not begin with '#'");
+        return string(abi.encodePacked(_bytesHex[1], _bytesHex[2], _bytesHex[3], _bytesHex[4], _bytesHex[5], _bytesHex[6]));
     }
 }
