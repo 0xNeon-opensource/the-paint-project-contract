@@ -3,10 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "base64-sol/base64.sol";
 import "./ColorConverter.sol";
 
 contract ThePaintProject is ERC721URIStorage {
+
+    using SafeMath for uint;
 
     string[] public colors;
     uint16 maxSupply = 1024;
@@ -155,6 +158,27 @@ contract ThePaintProject is ERC721URIStorage {
 
         // Calculate hue
         
+        hsl[0] = formatHue(uint(calculateHue(rFraction, gFraction, bFraction, channelMax, delta)));
+
+        // Calculate lightness
+
+        int lightness = calculateLightness(channelMax, channelMin);
+        hsl[2] = formatPercentage(uint(lightness));
+
+        // Calculate saturation
+
+        hsl[1] = formatPercentage(uint(calculateSaturation(delta, lightness)));
+
+        return hsl;
+    }
+
+    function calculateHue(
+        int rFraction,
+        int gFraction,
+        int bFraction,
+        int channelMax,
+        int delta
+        ) internal pure returns (int) {
         int h;
 
         if (delta == 0) {
@@ -177,28 +201,46 @@ contract ThePaintProject is ERC721URIStorage {
             h += 36000000;
         }
 
-        // Calculate luminance
+        return h;
+    }
 
-        int l;
+    function calculateLightness(int channelMax, int channelMin) internal pure returns (int) {
+        return divide((channelMax + channelMin), 200000);
+    }
 
-        l = divide((channelMax + channelMin), 200000);
-
-        // Calculate saturation
-
-        int s;
-
-        int saturationDenomenator = 2 * l - 100000;
+    function calculateSaturation(int delta, int lightness) internal pure returns (int) {
+        int saturationDenomenator = 2 * lightness - 100000;
         // Get absolute value of saturationDenomenator
         if (saturationDenomenator < 0) {
             saturationDenomenator -= saturationDenomenator * 2;
         }
-        s = delta == 0 ? int(0) : divide(delta, 100000 - saturationDenomenator);
+        
+        return delta == 0 ? int(0) : divide(delta, 100000 - saturationDenomenator);
+    }
 
-        hsl[0] = h;
-        hsl[1] = s;
-        hsl[2] = l;
+    function formatPercentage(uint rawNum) internal pure returns (int) {
+        // Math has been done with 5 digits of precision, meaning the number "1" is represented
+        // as 100000. 45%, or 0.45 is represented as 45000
+        uint roundedDown = SafeMath.div(rawNum, 1000);
+        // return int(roundedDown);
+        uint decimals = SafeMath.sub(rawNum, roundedDown * 1000);
+        if (decimals >= 445) {
+            roundedDown += 1;
+        }
 
-        return hsl;
+        return int(roundedDown);
+    }
+
+    function formatHue(uint rawNum) internal pure returns (int) {
+        // Math has been done with 5 digits of precision, meaning the number "1" is represented
+        // as 100000. 45%, or 0.45 is represented as 45000
+        uint roundedDown = SafeMath.div(rawNum, 100000);
+        uint decimals = SafeMath.sub(rawNum, roundedDown * 100000);
+        if (decimals >= 44500) {
+            roundedDown += 1;
+        }
+
+        return int(roundedDown);
     }
 
     // int allows for negative number division

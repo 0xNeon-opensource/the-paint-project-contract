@@ -157,9 +157,12 @@ contract('ThePaintProject', (accounts) => {
             const rgb = [160, 80, 70];
 
             await contract.convertRgbToHsl(rgb).then((result) => {
-                // assert.equal(result[0].toNumber(), 1);
-                // assert.equal(result[1].toNumber(), 2);
-                // assert.equal(result[2].toNumber(), 3);
+                // Hue
+                assert.equal(result[0].toNumber(), 7);
+                // Saturation
+                assert.equal(result[1].toNumber(), 39);
+                // Lightness
+                assert.equal(result[2].toNumber(), 45);
             });
         });
     });
