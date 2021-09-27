@@ -138,9 +138,9 @@ contract ThePaintProject is ERC721URIStorage {
         return rgb;
     }
 
-    function convertRgbToHsl(int16[] memory rgb) public pure returns (int) {
+    function convertRgbToHsl(int16[] memory rgb) public pure returns (int[] memory) {
         require(rgb.length == 3);
-        uint256[] memory hsl = new uint256[](3);
+        int[] memory hsl = new int[](3);
 
         // Make r, g, and b fractions of 1
         int rFraction = divide(int(rgb[0]), 255);
@@ -153,26 +153,52 @@ contract ThePaintProject is ERC721URIStorage {
         int channelMax = getMaxValueOfArray(fractionArray);
         int delta = channelMax - channelMin;
 
+        // Calculate hue
+        
         int h;
-        // // Calculate hue
-        // // No difference
+
         if (delta == 0) {
             h = 0;
         // Red is max
         } else if (channelMax == rFraction) {
-            h = divide((int(gFraction) - int(bFraction)), delta) % 6; // THIS MOD DOES NOT WORK! Figure out how to make it work with R being largest value.
+            h = divide((int(gFraction) - int(bFraction)), delta) % 600000; // % 6
         // Green is max
         } else if (channelMax == gFraction) {
-            // don't forget. if there's a number in this crazy solidity math with 4 digits, that means there's a .0 in front of it.
             h = divide(int(bFraction) - int(rFraction), delta) + 200000 ; // + 2
         // Blue is max
         } else {
-            h = divide((rFraction - gFraction), delta) + 400000;
+            h = divide((rFraction - gFraction), delta) + 400000; // + 4
         }
 
         h *= 60;
 
-        return h;
+        // Make negative hues positive behind 360°
+        if (h < 0) {
+            h += 36000000;
+        }
+
+        // Calculate luminance
+
+        int l;
+
+        l = divide((channelMax + channelMin), 200000);
+
+        // Calculate saturation
+
+        int s;
+
+        int saturationDenomenator = 2 * l - 100000;
+        // Get absolute value of saturationDenomenator
+        if (saturationDenomenator < 0) {
+            saturationDenomenator -= saturationDenomenator * 2;
+        }
+        s = delta == 0 ? int(0) : divide(delta, 100000 - saturationDenomenator);
+
+        hsl[0] = h;
+        hsl[1] = s;
+        hsl[2] = l;
+
+        return hsl;
     }
 
     // int allows for negative number division

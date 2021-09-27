@@ -154,14 +154,13 @@ contract('ThePaintProject', (accounts) => {
         });
 
         it('should convert RGB to HSL', async() => {
-            const rgb = [255, 80, 200];
+            const rgb = [160, 80, 70];
 
             await contract.convertRgbToHsl(rgb).then((result) => {
-                // assert.equal(result.toNumber(), 1);
+                // assert.equal(result[0].toNumber(), 1);
                 // assert.equal(result[1].toNumber(), 2);
                 // assert.equal(result[2].toNumber(), 3);
             });
-
         });
     });
 
