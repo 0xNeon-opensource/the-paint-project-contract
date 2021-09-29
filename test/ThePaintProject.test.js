@@ -105,11 +105,6 @@ contract('ThePaintProject', (accounts) => {
             assert.equal(uri, expectedImageUriForMintedColor);
         });
 
-        it('should format token URI', async () => {
-            const tokenUri = await contract.formatTokenUri(mintedColor, expectedImageUriForMintedColor);
-            assert.equal(tokenUri, expectedTokenUri);
-        });
-
         it('should get metadata from color', async () => {
             const metadata = await contract.getTokenUriForColor(mintedColor);
             assert.equal(metadata, expectedTokenUri);

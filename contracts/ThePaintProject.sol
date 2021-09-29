@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.8;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -8,6 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "base64-sol/base64.sol";
 import "./ColorConverter.sol";
 
+/// @title The Paint Project
+/// @author @the0xcollective
+/// @notice Creates and manages the first colors stored on the blockchain
 contract ThePaintProject is ERC721URIStorage, Ownable {
 
     using SafeMath for uint;
@@ -15,7 +18,7 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
     string[] public colors;
     uint16 maxSupply = 1024;
 
-    mapping(string => bool) _colorExists;
+    mapping(string => bool) colorExists;
     mapping(uint => string) tokenIdToColor;
     mapping(uint => address) tokenIdToOwner;
 
@@ -26,60 +29,54 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
         _;
     }
 
-    modifier onlyHexColor(bytes memory _color) {
-        require(_color.length == 7, "Length not correct");
-        require(_color[0] == "#", "Color code does not begin with '#'");
+    modifier onlyHexColor(bytes memory color) {
+        require(color.length == 7, "Length not correct");
+        require(color[0] == "#", "Color code does not begin with '#'");
         for (uint8 i = 1; i < 7; i++) {
             require(
-                _color[i] == 0x30 || // 0
-                _color[i] == 0x31 || // 1
-                _color[i] == 0x32 || // 2
-                _color[i] == 0x33 || // 3
-                _color[i] == 0x34 || // 4
-                _color[i] == 0x35 || // 5
-                _color[i] == 0x36 || // 6
-                _color[i] == 0x37 || // 7
-                _color[i] == 0x38 || // 8
-                _color[i] == 0x39 || // 9
-                _color[i] == 0x41 || // A
-                _color[i] == 0x42 || // B
-                _color[i] == 0x43 || // C
-                _color[i] == 0x44 || // D
-                _color[i] == 0x45 || // E
-                _color[i] == 0x46,   // F
+                color[i] == 0x30 || // 0
+                color[i] == 0x31 || // 1
+                color[i] == 0x32 || // 2
+                color[i] == 0x33 || // 3
+                color[i] == 0x34 || // 4
+                color[i] == 0x35 || // 5
+                color[i] == 0x36 || // 6
+                color[i] == 0x37 || // 7
+                color[i] == 0x38 || // 8
+                color[i] == 0x39 || // 9
+                color[i] == 0x41 || // A
+                color[i] == 0x42 || // B
+                color[i] == 0x43 || // C
+                color[i] == 0x44 || // D
+                color[i] == 0x45 || // E
+                color[i] == 0x46,   // F
                 "Color code is not a hex value"
             );
         }
         _;
     }
     
-    constructor() ERC721("ThePaintProject", "PAINT") {
-    }
+    constructor() ERC721("ThePaintProject", "PAINT") {}
 
     function contractURI() public pure returns (string memory) {
         return '{"name": "The Paint Project", "description": "The first colors stored on the blockchain. Feel free to use a Paint in any way you want.", "image": "https://static.wikia.nocookie.net/logopedia/images/2/29/Microsoft_Paint_Logo_%281998-2001%29_%28Alternative%29.png/revision/latest/scale-to-width-down/640?cb=20200822232627", "external_link": "https://thepaintproject.xyz", "seller_fee_basis_points": 1000, "fee_recipient": "0xD389E5427D20E9a2d7add0F102adf8E8A897c202"}';
     }
 
-    // Make this bytes32 or smaller??
-    function mint(string  memory _color) external doesNotExceedMaxSupply() onlyHexColor(bytes(_color)) {
-        require(!_colorExists[_color], 'Color exists');
-        uint _id = colors.length;
-        _safeMint(msg.sender, _id);
-        colors.push(_color);
-        _colorExists[_color] = true; // maybe remove and use tokenIdToColor?
-        tokenIdToColor[_id] = _color;
-        tokenIdToOwner[_id] = msg.sender;
-        string memory tokenUri = getTokenUriForColor(_color);
-        _setTokenURI(_id, tokenUri);
-        emit CreatedColor(_id, tokenUri);
+    function mint(string  memory color) external doesNotExceedMaxSupply() onlyHexColor(bytes(color)) {
+        require(!colorExists[color], 'Color exists');
+        uint id = colors.length;
+        _safeMint(msg.sender, id);
+        colors.push(color);
+        colorExists[color] = true;
+        tokenIdToColor[id] = color;
+        tokenIdToOwner[id] = msg.sender;
+        string memory tokenUri = getTokenUriForColor(color);
+        _setTokenURI(id, tokenUri);
+        emit CreatedColor(id, tokenUri);
     }
 
-    function totalSupply() public view returns (uint) {
-        return colors.length;
-    }
-
-    function getColorsOfOwner(address _owner) external view returns (string[] memory) {
-        uint256 tokenCount = balanceOf(_owner);
+    function getColorsOfOwner(address owner) external view returns (string[] memory) {
+        uint256 tokenCount = balanceOf(owner);
         
         if (tokenCount == 0) {
             // Return an empty array
@@ -94,7 +91,7 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
             uint256 tokenId;
 
             for (tokenId = 0; tokenId < totalColors; tokenId++) {
-                if (tokenIdToOwner[tokenId] == _owner) {
+                if (tokenIdToOwner[tokenId] == owner) {
                     result[resultIndex] = tokenIdToColor[tokenId];
                     resultIndex++;
                 }
@@ -105,33 +102,37 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
 
     }
 
-    function getTokenUriForColor(string memory _color) public pure returns (string memory) {
-        string memory _imageUri = colorToImageUri(_color);
-        string memory tokenUri = formatTokenUri(_color, _imageUri);
+    function totalSupply() public view returns (uint) {
+        return colors.length;
+    }
+
+    function getTokenUriForColor(string memory color) public pure returns (string memory) {
+        string memory imageUri = colorToImageUri(color);
+        string memory tokenUri = formatTokenUri(color, imageUri);
         return tokenUri;
     }
 
-    function colorToImageUri(string memory _color) public pure returns (string memory) {
-        // <svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='lime' /></svg>
+    function colorToImageUri(string memory color) public pure returns (string memory) {
+        // <svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='COLOR' /></svg>
         // data:image/svg+xml;base64,<Base64-encoding)
         string memory baseUrl = "data:image/svg+xml;base64,";
         string memory baseSvg = "<svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='";
-        string memory svg =  string(abi.encodePacked(baseSvg, _color, "' /></svg>"));
+        string memory svg =  string(abi.encodePacked(baseSvg, color, "' /></svg>"));
         string memory svgBase64Encoded = Base64.encode(bytes(string(abi.encodePacked(svg))));
         string memory imageUri = string(abi.encodePacked(baseUrl, svgBase64Encoded));
         return imageUri;
     }
 
-    function formatTokenUri(string memory _color, string memory _imageUri) public pure returns (string memory) {
+    function formatTokenUri(string memory color, string memory imageUri) private pure returns (string memory) {
         string memory baseUri = "data:application/json;base64,";
-        uint16[] memory rgb = ColorConverter.convertHexColorToRGB(_color);
+        uint16[] memory rgb = ColorConverter.convertHexColorToRGB(color);
         uint[] memory hsl = ColorConverter.convertRgbToHsl(rgb);
         string memory json = string(abi.encodePacked(
             '{',
-                '"name": "', _color, 
+                '"name": "', color, 
                 '", "description": "Proof of ownership of the original color ',
-                _color, ' on the Ethereum blockchain.',
-                '", "image": "', _imageUri, '"',
+                color, ' on the Ethereum blockchain.',
+                '", "image": "', imageUri, '"',
                 ', "attributes": [',
                     '{"trait_type": "Red Intensity", ',
                     '"value": "', uintToString(uint(rgb[0])), '"}, ',
@@ -153,12 +154,12 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
         return tokenUri;
     }
 
-    function uintToString(uint256 _i)internal pure returns (string memory str) {
-        if (_i == 0)
+    function uintToString(uint256 i) private pure returns (string memory str) {
+        if (i == 0)
         {
             return "0";
         }
-        uint256 j = _i;
+        uint256 j = i;
         uint256 length;
         while (j != 0)
         {
@@ -167,7 +168,7 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
         }
         bytes memory bstr = new bytes(length);
         uint256 k = length;
-        j = _i;
+        j = i;
         while (j != 0)
         {
             bstr[--k] = bytes1(uint8(48 + j % 10));
