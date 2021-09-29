@@ -4,10 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "base64-sol/base64.sol";
 import "./ColorConverter.sol";
 
-contract ThePaintProject is ERC721URIStorage {
+contract ThePaintProject is ERC721URIStorage, Ownable {
 
     using SafeMath for uint;
 
@@ -53,6 +54,10 @@ contract ThePaintProject is ERC721URIStorage {
     }
     
     constructor() ERC721("ThePaintProject", "PAINT") {
+    }
+
+    function contractURI() public pure returns (string memory) {
+        return '{"name": "The Paint Project", "description": "The first colors stored on the blockchain. Feel free to use a Paint in any way you want.", "image": "https://static.wikia.nocookie.net/logopedia/images/2/29/Microsoft_Paint_Logo_%281998-2001%29_%28Alternative%29.png/revision/latest/scale-to-width-down/640?cb=20200822232627", "external_link": "https://thepaintproject.xyz", "seller_fee_basis_points": 1000, "fee_recipient": "0xD389E5427D20E9a2d7add0F102adf8E8A897c202"}';
     }
 
     // Make this bytes32 or smaller??
@@ -137,9 +142,9 @@ contract ThePaintProject is ERC721URIStorage {
                     '{"trait_type": "Hue", ',
                     '"value": "', uintToString(uint(hsl[0])), unicode"°", '"}, ',
                     '{"trait_type": "Saturation", ',
-                    '"value": "', uintToString(uint(hsl[1])), '%"}, ',
+                    '"value": "', uintToString(uint(hsl[1])), ' percent"}, ',
                     '{"trait_type": "Lightness", ',
-                    '"value": "', uintToString(uint(hsl[2])), '%"}',
+                    '"value": "', uintToString(uint(hsl[2])), ' percent"}',
                 ']',
             '}'
         ));
