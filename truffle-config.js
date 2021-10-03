@@ -24,10 +24,10 @@ module.exports = {
     },
     mainnet: {
       provider: () => {
-        return new HDWalletProvider(process.env.MNEMONIC, process.env.MAINNET_RPC_URL)
+        return new HDWalletProvider(process.env.MNEMONIC, process.env.MAINNET_ALCHEMY_KEY)
       },
       network_id: '1',
-      skipDryRun: true,
+      skipDryRun: false,
     },
   },
 

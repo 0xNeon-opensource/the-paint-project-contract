@@ -147,6 +147,11 @@ library ColorConverter {
         return rgb;
     }
 
+    /**
+     * The following functions were added by me, 0xNeon
+     * find me at https://github.com/0xNeon-opensource
+     * follow me on https://twitter.com/0xNeon
+     */
     function convertRgbToHsl(uint16[] memory rgb) public pure returns (uint[] memory) {
         require(rgb.length == 3);
         uint[] memory hsl = new uint[](3);

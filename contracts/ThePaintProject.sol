@@ -9,7 +9,7 @@ import "base64-sol/base64.sol";
 import "./ColorConverter.sol";
 
 /// @title The Paint Project
-/// @author @the0xcollective
+/// @author @0xNeon
 /// @notice Creates and manages the first colors stored on the blockchain
 contract ThePaintProject is ERC721URIStorage, Ownable {
 
@@ -127,8 +127,7 @@ contract ThePaintProject is ERC721URIStorage, Ownable {
         string memory baseUri = "data:application/json;base64,";
         uint16[] memory rgb = ColorConverter.convertHexColorToRGB(color);
         uint[] memory hsl = ColorConverter.convertRgbToHsl(rgb);
-        string memory json = string(abi.encodePacked(
-            '{',
+        string memory json = string(abi.encodePacked('{',
                 '"name": "', color, 
                 '", "description": "Proof of ownership of the original color ',
                 color, ' on the Ethereum blockchain.',
